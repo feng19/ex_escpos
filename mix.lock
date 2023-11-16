@@ -1,0 +1,4 @@
+%{
+  "bmp": {:hex, :bmp, "0.1.1", "54ef05df432d1a6e89f06b0d7320f3f440a9741a971cc44a7d18742fb14c6921", [:mix], [], "hexpm", "f6a2ff424f8d837f43ca33372df3afab0bd061ede9f019fe3e932e35b5e6adc9"},
+  "iconv": {:hex, :iconv, "1.0.13", "98e723a14a1942e94cb32837ee875d145a7f2266f2c79816a54f1aa77ebff495", [:rebar3], [], "hexpm", "bcb37d52da24161f2c2beeb9234b62e76562919149cc2fc0d3537ac0cef5b977"},
+}
