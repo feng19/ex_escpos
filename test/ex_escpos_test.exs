@@ -143,4 +143,20 @@ defmodule ExEscposTest do
     Process.sleep(100)
     Client.close(c)
   end
+
+  test "return_status", %{client: c, ip: ip} do
+    data =
+      IO.iodata_to_binary([
+        init(),
+        title("ReturnStatus Test"),
+        feed_cut(),
+        return_status()
+      ])
+
+    Client.connect(c, ip)
+    assert {:ok, status_map} = Client.sync_write(c, data)
+    IO.inspect(status_map)
+    Process.sleep(100)
+    Client.close(c)
+  end
 end

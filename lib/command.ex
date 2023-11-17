@@ -1,6 +1,7 @@
 defmodule ExEscpos.Command do
   @moduledoc false
   @encoding "GB18030"
+  @dle 16
   @esc 27
   @fs 28
   @gs 29
@@ -12,6 +13,26 @@ defmodule ExEscpos.Command do
 
   @doc "初始化打印机"
   def init, do: <<@esc, ?@>>
+
+  @doc "实时状态传送"
+  @spec alive_status_callback(n :: 1..4) :: binary
+  def alive_status_callback(n) when n >= 1 and n <= 4, do: <<@dle, 4, n>>
+
+  @doc "自动状态返传功能"
+  @spec asb(n :: 0..255 | boolean) :: binary
+  def asb(n \\ 255) do
+    n =
+      case n do
+        false -> 0
+        true -> 255
+        x -> x
+      end
+
+    <<@gs, ?a, n>>
+  end
+
+  @doc "返回状态"
+  def return_status(n \\ 1), do: <<@gs, ?r, n>>
 
   @doc "打印机状态（请使用 4000 端口）"
   def check_status, do: <<@esc, ?v>>
@@ -432,5 +453,9 @@ defmodule ExEscpos.Command do
       page_not_enough: page_not_enough == 3,
       page: page == 0
     }
+  end
+
+  def parse_page_status(<<page_not_enough::2, page::2, _::4>>) do
+    %{page_not_enough: page_not_enough == 3, page: page == 0}
   end
 end

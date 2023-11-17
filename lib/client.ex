@@ -13,7 +13,9 @@ defmodule ExEscpos.Client do
   def status(pid), do: :sys.get_state(pid)
   def reconnect(pid), do: GenServer.call(pid, :reconnect)
   def close(pid), do: GenServer.call(pid, :close)
-  def write(pid, binary), do: GenServer.cast(pid, {:write, binary})
+  def write(pid, iolist), do: async_write(pid, iolist)
+  def sync_write(pid, iolist), do: GenServer.call(pid, {:write, iolist})
+  def async_write(pid, iolist), do: GenServer.cast(pid, {:write, iolist})
 
   def check_status(ip, port \\ 4000) when is_list(ip) or is_binary(ip) do
     ip = if is_binary(ip), do: :erlang.binary_to_list(ip), else: ip
@@ -27,6 +29,11 @@ defmodule ExEscpos.Client do
 
   def init(_) do
     {:ok, %{ip: nil, port: nil, socket: nil, width: 48, page_width: 80, encoding: "GB18030"}}
+  end
+
+  def handle_call({:write, iolist}, _from, state) do
+    :gen_tcp.send(state.socket, iolist)
+    {:reply, wait_callback(state.socket, 500), state}
   end
 
   def handle_call({:connect, ip, port, page_width, encoding}, _from, %{socket: nil} = state) do
@@ -74,30 +81,42 @@ defmodule ExEscpos.Client do
   def handle_call({:check_status, ip, port}, from, state) do
     {:ok, socket} = :gen_tcp.connect(ip, port, [:binary, {:packet, 0}])
     :gen_tcp.send(socket, Command.check_status())
-
-    receive do
-      {:tcp, ^socket, data} ->
-        GenServer.reply(from, {:ok, Command.parse_status(data)})
-    after
-      4900 ->
-        GenServer.reply(from, {:error, :timeout})
-    end
-
+    reply = wait_callback(socket)
+    GenServer.reply(from, reply)
     {:stop, :normal, state}
   end
 
-  def handle_cast({:write, binary}, state) do
-    :gen_tcp.send(state.socket, binary)
+  def handle_cast({:write, iolist}, state) do
+    :gen_tcp.send(state.socket, iolist)
     {:noreply, state}
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    Logger.debug("printer response #{data}")
+    if byte_size(data) == 4 do
+      status = Command.parse_status(data)
+      Logger.debug("printer status: #{inspect(status)}")
+    else
+      Logger.debug("printer response #{data}")
+    end
+
     {:noreply, state}
   end
 
   def handle_info({:tcp_closed, _socket}, state) do
     Logger.info("printer closed")
     {:noreply, %{state | socket: nil}}
+  end
+
+  defp wait_callback(socket, timeout \\ 4900) do
+    receive do
+      {:tcp, ^socket, data} ->
+        case byte_size(data) do
+          1 -> {:ok, Command.parse_page_status(data)}
+          4 -> {:ok, Command.parse_status(data)}
+          _ -> {:ok, data}
+        end
+    after
+      timeout -> {:error, :timeout}
+    end
   end
 end
