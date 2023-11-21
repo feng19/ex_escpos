@@ -72,18 +72,18 @@ defmodule ExEscpos.Command do
   def align(:right), do: <<@esc, ?a, 2>>
 
   @doc "默认打印模式"
-  def default_mode, do: <<@esc, ?!, 0>>
+  def default_mode, do: <<@esc, ?!, 0, @fs, ?!, 0>>
 
   @doc "打印模式"
   def mode(zip?, bold?, double_height?, double_width?, underline?) do
     n =
-      if(zip?, do: 0b00000000, else: 0b00000001)
+      if(zip?, do: 0b00000001, else: 0b00000000)
       |> then(&if bold?, do: &1 + 0b00001000, else: &1)
       |> then(&if double_height?, do: &1 + 0b00010000, else: &1)
       |> then(&if double_width?, do: &1 + 0b00100000, else: &1)
       |> then(&if underline?, do: &1 + 0b10000000, else: &1)
 
-    <<@esc, ?!, n>>
+    <<@esc, ?!, n>> <> hans_mode(double_height?, double_width?, underline?)
   end
 
   def font_size_wrap(size, text, encoding \\ @encoding) do
@@ -149,11 +149,13 @@ defmodule ExEscpos.Command do
   @doc "设置下划线"
   def underline(enable? \\ true) do
     n = if enable?, do: 1, else: 0
-    <<@esc, ?-, n>>
+    <<@esc, ?-, n>> <> hans_underline(enable?)
   end
 
   @doc "设置下划线(两点宽)"
-  def double_underline, do: <<@esc, ?-, 2>>
+  def double_underline do
+    <<@esc, ?-, 2>> <> hans_double_underline()
+  end
 
   @doc "设置加粗"
   def bold(enable? \\ true) do
@@ -374,23 +376,15 @@ defmodule ExEscpos.Command do
   end
 
   def table_custom(headers, list, width, type \\ :both, encoding \\ @encoding) do
-    padding =
-      case width - Enum.sum(headers) do
-        0 -> ""
-        n -> List.duplicate(" ", n)
-      end
-
+    padding = width - Enum.sum(headers)
     latest = length(headers) - 1
     headers_with_index = Enum.with_index(headers)
 
-    list =
-      Enum.zip_with(headers_with_index, list, fn
-        {cell_length, 0}, item -> padding(item, cell_length, :right, encoding)
-        {cell_length, ^latest}, item -> padding(item, cell_length, :left, encoding)
-        {cell_length, _index}, item -> padding(item, cell_length, type, encoding)
-      end)
-
-    [list, padding]
+    Enum.zip_with(headers_with_index, list, fn
+      {cell_length, 0}, item -> padding(item, cell_length + padding, :right, encoding)
+      {cell_length, ^latest}, item -> padding(item, cell_length, :left, encoding)
+      {cell_length, _index}, item -> padding(item, cell_length, type, encoding)
+    end)
     |> IO.iodata_to_binary()
     |> Kernel.<>(new_line())
   end
@@ -427,10 +421,10 @@ defmodule ExEscpos.Command do
 
   def title(text, encoding \\ @encoding) do
     IO.iodata_to_binary([
-      font_size(8),
-      bold(true),
+      mode(false, true, true, true, false),
       align(:center),
       println(text, encoding),
+      align(:left),
       new_line(),
       default_mode()
     ])

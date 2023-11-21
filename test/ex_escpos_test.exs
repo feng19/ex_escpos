@@ -17,11 +17,28 @@ defmodule ExEscposTest do
   end
 
   test "basic", %{client: c, width: width} do
+    mode_array =
+      for zip? <- [true, false],
+          bold? <- [true, false],
+          double_height? <- [true, false],
+          double_width? <- [true, false] do
+        [
+          mode(bold?, zip?, double_height?, double_width?, false),
+          println(
+            "B:#{format_boolean(bold?)} Z:#{format_boolean(zip?)} 2H:#{format_boolean(double_height?)} 2W:#{format_boolean(double_width?)} 中文"
+          )
+        ]
+      end
+
+    size_array =
+      for x <- 1..8 do
+        [font_size(x), println("s: #{x} |!@#$%^&*()-+= abc")]
+      end
+
     data =
       [
         init(),
         title("Basic Test"),
-        align(:left),
         println("QRCODE:"),
         align(:center),
         qrcode("http://www.example.com"),
@@ -31,10 +48,10 @@ defmodule ExEscposTest do
         barcode("0123456789123"),
         draw_line(width),
         align(:left),
-        # font size test
-        for x <- 1..8 do
-          [font_size(x), println("s: #{x} |!@#$%^&*()-+= abc")]
-        end,
+        mode_array,
+        default_mode(),
+        draw_line(width),
+        size_array,
         default_mode(),
         draw_line(width),
         # font style test
@@ -50,13 +67,15 @@ defmodule ExEscposTest do
         align(:left),
         table(["第一列", "中间", "最后一列"], width),
         table(["第一列", "第二列", "第三列", "第四列"], width),
+        table(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
+        table(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
         new_line(),
         align(:left),
-        println("align left - line"),
+        println("align left"),
         align(:center),
-        println("align center - line"),
+        println("align center"),
         align(:right),
-        println("align right - line"),
+        println("align right"),
         draw_line(width, "="),
         align(:center),
         println("test end"),
@@ -68,7 +87,41 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
-  test "ht table test", %{client: c, width: width} do
+  test "hans", %{client: c, width: width} do
+    array =
+      for double_height? <- [true, false], double_width? <- [true, false] do
+        [
+          hans_mode(double_height?, double_width?, false),
+          println("倍高:#{format_boolean(double_height?)}, 倍宽:#{format_boolean(double_width?)}")
+        ]
+      end
+
+    data =
+      [
+        init(),
+        title("中文测试"),
+        println("我爱说中国话"),
+        bold(true),
+        println("(粗体)我爱说中国话"),
+        bold(false),
+        array,
+        draw_line(width, "="),
+        underline(),
+        println("下划线 01 abc"),
+        double_underline(),
+        println("下划线 02 abc"),
+        underline(false),
+        align(:center),
+        println("* 测试结束 END *"),
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "ht table", %{client: c, width: width} do
     headers = [26, 8, 6, 8]
     space_list = [0, 9, 6, 8]
 
@@ -156,4 +209,7 @@ defmodule ExEscposTest do
     assert {:ok, status_map} = Client.sync_write_with_status(c, data)
     assert is_map(status_map)
   end
+
+  defp format_boolean(true), do: 1
+  defp format_boolean(false), do: 0
 end
