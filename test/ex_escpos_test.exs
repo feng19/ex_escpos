@@ -39,6 +39,9 @@ defmodule ExEscposTest do
       [
         init(),
         title("Basic Test"),
+        println("123456789012345678901234567890123456789012345678"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
         println("QRCODE:"),
         align(:center),
         qrcode("http://www.example.com"),
@@ -130,9 +133,8 @@ defmodule ExEscposTest do
         init(),
         title("Table Test"),
         draw_line(width),
-        table_custom_header(headers, ["商品", "单价", "数量", "金额"], width),
+        table_custom_header(["商品", "单价", "数量", "金额"], headers, width),
         table_custom_body(
-          headers,
           [
             ["素食套餐", "18", "1", "18"],
             [" 藕片（4片）", "3.8", "2", "7.6"],
@@ -142,22 +144,26 @@ defmodule ExEscposTest do
             ["鸡爪（3个）", "7.8", "2", "15.6"],
             ["牛肉丸（3个）", "6.8", "1", "6.8"]
           ],
+          headers,
           width
         ),
         feed_cut(),
         title("HT Table Test"),
         set_ht([25, 34, 40]),
         draw_line(width),
-        ht_table_header(space_list, ["商品", "单价", "数量", "金额"], width),
-        ht_table_body(space_list, [
-          ["素食套餐", "18", "1", "18"],
-          [" 藕片（4片）", "3.8", "2", "7.6"],
-          [" 腐竹（5块）", "3.8", "1", "3.8"],
-          [" 海带结（5个）", "3.8", "1", "7.6"],
-          ["鹌鹑蛋（4个）", "4.8", "1", "4.8"],
-          ["鸡爪（3个）", "7.8", "2", "15.6"],
-          ["牛肉丸（3个）", "6.8", "1", "6.8"]
-        ]),
+        ht_table_header(["商品", "单价", "数量", "金额"], space_list, width),
+        ht_table_body(
+          [
+            ["素食套餐", "18", "1", "18"],
+            [" 藕片（4片）", "3.8", "2", "7.6"],
+            [" 腐竹（5块）", "3.8", "1", "3.8"],
+            [" 海带结（5个）", "3.8", "1", "7.6"],
+            ["鹌鹑蛋（4个）", "4.8", "1", "4.8"],
+            ["鸡爪（3个）", "7.8", "2", "15.6"],
+            ["牛肉丸（3个）", "6.8", "1", "6.8"]
+          ],
+          space_list
+        ),
         feed_cut()
       ])
 
@@ -197,11 +203,64 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
+  test "font style", %{client: c, width: width} do
+    data =
+      IO.iodata_to_binary([
+        init(),
+        title("Font Style Test"),
+        # normal
+        println("123456789012345678901234567890123456789012345678"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
+        draw_line(width),
+        println("zip"),
+        draw_line(width),
+        mode(true, false, false, false, false),
+        println("1234567890123456789012345678901234567890123456789012345678901234"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
+        draw_line(width),
+        println("bold"),
+        draw_line(width),
+        mode(false, true, false, false, false),
+        println("123456789012345678901234567890123456789012345678"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
+        draw_line(width),
+        println("double height"),
+        draw_line(width),
+        mode(false, false, true, false, false),
+        println("123456789012345678901234567890123456789012345678"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
+        draw_line(width),
+        println("double weight"),
+        draw_line(width),
+        mode(false, false, false, true, false),
+        println("123456789012345678901234"),
+        println("abcdefghijklmnopqrstuvwx"),
+        println("一二三四五一二三四五一二"),
+        draw_line(width),
+        println("double height & weight"),
+        draw_line(width),
+        mode(false, false, true, true, false),
+        println("123456789012345678901234"),
+        println("abcdefghijklmnopqrstuvwx"),
+        println("一二三四五一二三四五一二"),
+        feed_cut()
+      ])
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
   test "sync write & return status", %{client: c} do
     data =
       IO.iodata_to_binary([
         init(),
         title("ReturnStatus Test"),
+        println("123456789012345678901234567890123456789012345678"),
+        println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
+        println("一二三四五一二三四五一二三四五一二三四五一二三四"),
         feed_cut(),
         return_status()
       ])

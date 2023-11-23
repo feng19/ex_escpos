@@ -305,23 +305,23 @@ defmodule ExEscpos.Command do
     |> IO.iodata_to_binary()
   end
 
-  def ht_table_header(space_list, list, width, encoding \\ @encoding) do
+  def ht_table_header(list, space_list, width, encoding \\ @encoding) do
     IO.iodata_to_binary([
       bold(),
-      ht_table(space_list, list, encoding),
+      ht_table(list, space_list, encoding),
       bold(false),
       draw_line(width)
     ])
   end
 
-  def ht_table_body(space_list, body, encoding \\ @encoding) do
+  def ht_table_body(body, space_list, encoding \\ @encoding) do
     for list <- body do
-      ht_table(space_list, list, encoding)
+      ht_table(list, space_list, encoding)
     end
     |> IO.iodata_to_binary()
   end
 
-  def ht_table(space_list, list, encoding \\ @encoding) do
+  def ht_table(list, space_list, encoding \\ @encoding) do
     latest = length(list) - 1
 
     space_list
@@ -356,26 +356,26 @@ defmodule ExEscpos.Command do
   def table(list, width, type \\ :both, encoding \\ @encoding) do
     length = length(list)
     cell_width = div(width, length)
-    table_custom(List.duplicate(cell_width, length), list, width, type, encoding)
+    table_custom(list, List.duplicate(cell_width, length), width, type, encoding)
   end
 
-  def table_custom_header(headers, list, width, type \\ :both, encoding \\ @encoding) do
+  def table_custom_header(list, headers, width, type \\ :both, encoding \\ @encoding) do
     IO.iodata_to_binary([
       bold(),
-      table_custom(headers, list, width, type, encoding),
+      table_custom(list, headers, width, type, encoding),
       bold(false),
       draw_line(width)
     ])
   end
 
-  def table_custom_body(headers, body, width, type \\ :both, encoding \\ @encoding) do
+  def table_custom_body(body, headers, width, type \\ :both, encoding \\ @encoding) do
     for list <- body do
-      table_custom(headers, list, width, type, encoding)
+      table_custom(list, headers, width, type, encoding)
     end
     |> IO.iodata_to_binary()
   end
 
-  def table_custom(headers, list, width, type \\ :both, encoding \\ @encoding) do
+  def table_custom(list, headers, width, type \\ :both, encoding \\ @encoding) do
     padding = width - Enum.sum(headers)
     latest = length(headers) - 1
     headers_with_index = Enum.with_index(headers)
@@ -389,33 +389,33 @@ defmodule ExEscpos.Command do
     |> Kernel.<>(new_line())
   end
 
-  @spec padding(content :: text, width :: integer, type :: :both | :left | :right) :: binary
-  def padding(content, width, type \\ :both, encoding \\ @encoding) do
-    content = text(content, encoding)
-    length = byte_size(content)
+  @spec padding(text, width :: integer, type :: :both | :left | :right) :: binary
+  def padding(text, width, type \\ :both, encoding \\ @encoding) do
+    text = text(text, encoding)
+    length = byte_size(text)
 
     if length < width do
       case width - length do
         1 ->
-          content <> " "
+          text <> " "
 
         spaces ->
           case type do
             :both ->
               left_s = div(spaces, 2)
               right_s = spaces - left_s
-              [List.duplicate(" ", left_s), content | List.duplicate(" ", right_s)]
+              [List.duplicate(" ", left_s), text | List.duplicate(" ", right_s)]
 
             :left ->
-              [List.duplicate(" ", spaces), content]
+              [List.duplicate(" ", spaces), text]
 
             :right ->
-              [content | List.duplicate(" ", spaces)]
+              [text | List.duplicate(" ", spaces)]
           end
           |> IO.iodata_to_binary()
       end
     else
-      content
+      text
     end
   end
 
