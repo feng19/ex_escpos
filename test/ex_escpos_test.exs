@@ -61,10 +61,10 @@ defmodule ExEscposTest do
         new_line(),
         println("one line"),
         align(:left),
-        table(["第一列", "中间", "最后一列"], width),
-        table(["第一列", "第二列", "第三列", "第四列"], width),
-        table(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
-        table(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
+        table_row(["第一列", "中间", "最后一列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
         new_line(),
         align(:left),
         println("align left"),
@@ -117,9 +117,70 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
-  test "ht table", %{client: c, width: width} do
+  test "table", %{client: c, width: width} do
+    data_1 = [
+      ["素食套餐", "18", "1", "18"],
+      [" 藕片（4片）", "3.8", "2", "7.6"],
+      [" 腐竹（5块）", "3.8", "1", "3.8"],
+      [" 海带结（5个）", "3.8", "1", "7.6"],
+      ["鹌鹑蛋（4个）", "4.8", "1", "4.8"],
+      ["鸡爪（3个）", "7.8", "2", "15.6"],
+      ["牛肉丸（3个）", "6.8", "1", "6.8"]
+    ]
+
+    col_settings_1 = [
+      %{label: "商品", spaces: 26},
+      %{label: "单价", spaces: 8},
+      %{label: "数量", spaces: 6},
+      %{label: "金额", spaces: 8}
+    ]
+
+    data_2 = [
+      %{name: "素食套餐", price: "18", count: "1", sum: "18"},
+      %{name: " 藕片（4片）", price: "3.8", count: "2", sum: "7.6"},
+      %{name: " 腐竹（5块）", price: "3.8", count: "1", sum: "3.8"},
+      %{name: " 海带结（5个）", price: "3.8", count: "1", sum: "7.6"},
+      %{name: "鹌鹑蛋（4个）", price: "4.8", count: "1", sum: "4.8"},
+      %{name: "鸡爪（3个）", price: "7.8", count: "2", sum: "15.6"},
+      %{name: "牛肉丸（3个）", price: "6.8", count: "1", sum: "6.8"}
+    ]
+
+    col_settings_2 = [
+      %{label: "商品", key: :name, spaces: 26},
+      %{label: "单价", key: :price, spaces: 8},
+      %{label: "数量", key: :count, spaces: 6},
+      %{label: "金额", key: :sum, spaces: 8}
+    ]
+
+    data =
+      [
+        init(),
+        title("Table Test"),
+        println("table custom - 1"),
+        draw_line(width),
+        table_custom(data_1, col_settings_1, width),
+        draw_line(width, "="),
+        println("table custom - 2"),
+        draw_line(width),
+        table_custom(data_2, col_settings_2, width),
+        draw_line(width, "="),
+        println("ht table custom - 1"),
+        draw_line(width),
+        ht_table(data_1, col_settings_1, width),
+        draw_line(width, "="),
+        println("ht table custom - 2"),
+        draw_line(width),
+        ht_table(data_2, col_settings_2, width),
+        feed_cut()
+      ]
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "table origin apis", %{client: c, width: width} do
     headers = [26, 8, 6, 8]
-    space_list = [0, 9, 6, 8]
+    space_list = [0, 8, 6, 8]
 
     data =
       IO.iodata_to_binary([
@@ -142,7 +203,7 @@ defmodule ExEscposTest do
         ),
         feed_cut(),
         title("HT Table Test"),
-        set_ht([25, 34, 40]),
+        set_ht([26, 34, 40]),
         draw_line(width),
         ht_table_header(["商品", "单价", "数量", "金额"], space_list, width),
         ht_table_body(

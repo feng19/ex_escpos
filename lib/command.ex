@@ -324,10 +324,76 @@ defmodule ExEscpos.Command do
     |> IO.iodata_to_binary()
   end
 
+  def ht_table(data, col_settings, width, encoding \\ @encoding) do
+    {ht_points, _} =
+      Enum.reduce(col_settings, {[], 0}, fn col, {acc, point} ->
+        point = point + col.spaces
+
+        if point >= width do
+          {acc, point}
+        else
+          {acc ++ [point], point}
+        end
+      end)
+
+    latest = length(col_settings) - 1
+
+    col_settings =
+      col_settings
+      |> Enum.with_index()
+      |> Enum.map(fn {col, index} ->
+        padding_type =
+          case index do
+            0 -> :right
+            ^latest -> :left
+            _index -> :both
+          end
+
+        col |> Map.put(:padding_type, padding_type) |> Map.put(:index, index)
+      end)
+
+    header =
+      Stream.map(col_settings, fn col ->
+        ht_padding_space(col.label, col.spaces, col.padding_type, encoding)
+      end)
+      |> Enum.join(ht())
+
+    rows =
+      Enum.map(data, fn row ->
+        row =
+          if is_list(row) do
+            Stream.map(col_settings, fn col ->
+              text = Enum.at(row, col.index)
+              Map.put(col, :text, text)
+            end)
+          else
+            Stream.map(col_settings, fn col ->
+              text = row[col.key]
+              Map.put(col, :text, text)
+            end)
+          end
+          |> Stream.map(fn col ->
+            ht_padding_space(col.text, col.spaces, col.padding_type, encoding)
+          end)
+          |> Enum.join(ht())
+
+        [row, new_line()]
+      end)
+
+    IO.iodata_to_binary([
+      set_ht(ht_points),
+      bold(true),
+      header,
+      bold(false),
+      draw_line(width),
+      rows
+    ])
+  end
+
   def ht_table_header(list, space_list, width, encoding \\ @encoding) do
     IO.iodata_to_binary([
       bold(),
-      ht_table(list, space_list, encoding),
+      ht_table_row(list, space_list, encoding),
       bold(false),
       draw_line(width)
     ])
@@ -335,17 +401,20 @@ defmodule ExEscpos.Command do
 
   def ht_table_body(body, space_list, encoding \\ @encoding) do
     for list <- body do
-      ht_table(list, space_list, encoding)
+      ht_table_row(list, space_list, encoding)
     end
     |> IO.iodata_to_binary()
   end
 
-  def ht_table(list, space_list, encoding \\ @encoding) do
+  def ht_table_row(list, space_list, encoding \\ @encoding) do
     latest = length(list) - 1
 
     space_list
     |> Enum.with_index()
     |> Enum.zip_with(list, fn
+      {_space, 0}, text ->
+        text
+
       {space, ^latest}, text ->
         text = text(text, encoding)
         padding = max(space - byte_size(text), 0)
@@ -372,16 +441,68 @@ defmodule ExEscpos.Command do
     IO.iodata_to_binary([List.duplicate(c, width), new_line()])
   end
 
-  def table(list, width, type \\ :both, encoding \\ @encoding) do
+  def table_custom(data, col_settings, width, encoding \\ @encoding) do
+    latest = length(col_settings) - 1
+
+    col_settings =
+      col_settings
+      |> Enum.with_index()
+      |> Enum.map(fn {col, index} ->
+        padding_type =
+          case index do
+            0 -> :right
+            ^latest -> :left
+            _index -> :both
+          end
+
+        col |> Map.put(:padding_type, padding_type) |> Map.put(:index, index)
+      end)
+
+    header =
+      Enum.map(col_settings, fn col ->
+        padding_space(col.label, col.spaces, col.padding_type, encoding)
+      end)
+
+    rows =
+      Enum.map(data, fn row ->
+        row =
+          if is_list(row) do
+            Stream.map(col_settings, fn col ->
+              text = Enum.at(row, col.index)
+              Map.put(col, :text, text)
+            end)
+          else
+            Stream.map(col_settings, fn col ->
+              text = row[col.key]
+              Map.put(col, :text, text)
+            end)
+          end
+          |> Enum.map(fn col ->
+            padding_space(col.text, col.spaces, col.padding_type, encoding)
+          end)
+
+        [row, new_line()]
+      end)
+
+    IO.iodata_to_binary([
+      bold(true),
+      header,
+      bold(false),
+      draw_line(width),
+      rows
+    ])
+  end
+
+  def table_row(list, width, type \\ :both, encoding \\ @encoding) do
     length = length(list)
     cell_width = div(width, length)
-    table_custom(list, List.duplicate(cell_width, length), width, type, encoding)
+    table_custom_row(list, List.duplicate(cell_width, length), width, type, encoding)
   end
 
   def table_custom_header(list, headers, width, type \\ :both, encoding \\ @encoding) do
     IO.iodata_to_binary([
       bold(),
-      table_custom(list, headers, width, type, encoding),
+      table_custom_row(list, headers, width, type, encoding),
       bold(false),
       draw_line(width)
     ])
@@ -389,49 +510,68 @@ defmodule ExEscpos.Command do
 
   def table_custom_body(body, headers, width, type \\ :both, encoding \\ @encoding) do
     for list <- body do
-      table_custom(list, headers, width, type, encoding)
+      table_custom_row(list, headers, width, type, encoding)
     end
     |> IO.iodata_to_binary()
   end
 
-  def table_custom(list, headers, width, type \\ :both, encoding \\ @encoding) do
+  def table_custom_row(list, headers, width, type \\ :both, encoding \\ @encoding) do
     padding = width - Enum.sum(headers)
     latest = length(headers) - 1
     headers_with_index = Enum.with_index(headers)
 
     Enum.zip_with(headers_with_index, list, fn
-      {cell_length, 0}, item -> padding(item, cell_length + padding, :right, encoding)
-      {cell_length, ^latest}, item -> padding(item, cell_length, :left, encoding)
-      {cell_length, _index}, item -> padding(item, cell_length, type, encoding)
+      {cell_length, 0}, item -> padding_space(item, cell_length + padding, :right, encoding)
+      {cell_length, ^latest}, item -> padding_space(item, cell_length, :left, encoding)
+      {cell_length, _index}, item -> padding_space(item, cell_length, type, encoding)
     end)
     |> IO.iodata_to_binary()
     |> Kernel.<>(new_line())
   end
 
-  @spec padding(text, width :: integer, type :: :both | :left | :right) :: binary
-  def padding(text, width, type \\ :both, encoding \\ @encoding) do
+  @spec padding_space(text, width :: integer, type :: :both | :left | :right) :: binary
+  def padding_space(text, width, type \\ :both, encoding \\ @encoding) do
     text = text(text, encoding)
     length = byte_size(text)
 
     if length < width do
-      case width - length do
-        1 ->
-          text <> " "
+      spaces = width - length
 
-        spaces ->
-          case type do
-            :both ->
-              left_s = div(spaces, 2)
-              right_s = spaces - left_s
-              [List.duplicate(" ", left_s), text | List.duplicate(" ", right_s)]
+      case type do
+        :both ->
+          left_s = div(spaces, 2)
+          right_s = spaces - left_s
+          [List.duplicate(" ", left_s), text | List.duplicate(" ", right_s)]
 
-            :left ->
-              [List.duplicate(" ", spaces), text]
+        :left ->
+          [List.duplicate(" ", spaces), text]
 
-            :right ->
-              [text | List.duplicate(" ", spaces)]
-          end
-          |> IO.iodata_to_binary()
+        :right ->
+          [text | List.duplicate(" ", spaces)]
+      end
+      |> IO.iodata_to_binary()
+    else
+      text
+    end
+  end
+
+  def ht_padding_space(text, width, type \\ :both, encoding \\ @encoding) do
+    text = text(text, encoding)
+    length = byte_size(text)
+
+    if length < width do
+      spaces = width - length
+
+      case type do
+        :both ->
+          left_s = div(spaces, 2)
+          IO.iodata_to_binary([List.duplicate(" ", left_s), text])
+
+        :left ->
+          IO.iodata_to_binary([List.duplicate(" ", spaces), text])
+
+        :right ->
+          text
       end
     else
       text
