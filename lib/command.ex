@@ -196,12 +196,26 @@ defmodule ExEscpos.Command do
 
   @doc """
   条形码
-  code-type: EAN13
-  code 必须 13 位
+  type: EAN13 | "CODE128"
+  data:
+    - type=EAN13, 必须 12-13 位
+    - type=CODE128
   """
-  @spec barcode(code :: binary) :: binary
-  def barcode(code) do
-    <<@gs, ?k, 67, 13, code::binary>>
+  @spec barcode(type :: String.t(), data :: binary) :: binary
+  def barcode("EAN13", data) do
+    size = byte_size(data)
+    <<@gs, ?k, 67, size, data::binary>>
+  end
+
+  def barcode("CODE128", data) when is_binary(data) do
+    size = byte_size(data) + 2
+    <<@gs, ?k, 73, size, ?{, ?B, data::binary>>
+  end
+
+  def barcode("CODE128", iodata) when is_list(iodata) do
+    data = IO.iodata_to_binary(iodata)
+    size = byte_size(data)
+    <<@gs, ?k, 73, size, data::binary>>
   end
 
   @spec barcode_position(position :: nil | :top | :bottom | :both) :: binary
@@ -223,14 +237,19 @@ defmodule ExEscpos.Command do
     <<@gs, ?f, n>>
   end
 
+  @spec barcode_weight(weight :: 2..6) :: binary
+  def barcode_weight(weight \\ 3) when weight >= 2 and weight <= 6 do
+    <<@gs, ?w, weight>>
+  end
+
   @spec barcode_height(height :: 1..255) :: binary
-  def barcode_height(height \\ 162) when height >= 1 and height <= 255 do
+  def barcode_height(height \\ 80) when height >= 1 and height <= 255 do
     <<@gs, ?h, height>>
   end
 
   @doc "二维码"
   @spec qrcode(data :: binary, qr_level :: String.t(), size :: 1..9) :: binary
-  def qrcode(data, qr_level \\ "L", size \\ 6, encoding \\ @encoding)
+  def qrcode(data, qr_level \\ "L", size \\ 3, encoding \\ @encoding)
       when size >= 1 and size <= 9 do
     data = text(data, encoding)
     pl = byte_size(data) + 3

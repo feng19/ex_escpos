@@ -42,13 +42,6 @@ defmodule ExEscposTest do
         println("123456789012345678901234567890123456789012345678"),
         println("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv"),
         println("一二三四五一二三四五一二三四五一二三四五一二三四"),
-        println("QRCODE:"),
-        align(:center),
-        qrcode("http://www.example.com"),
-        new_line(),
-        barcode_height(100),
-        barcode_position(),
-        barcode("0123456789123"),
         draw_line(width),
         align(:left),
         mode_array,
@@ -166,6 +159,84 @@ defmodule ExEscposTest do
         ),
         feed_cut()
       ])
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "qrcode", %{client: c} do
+    data =
+      [
+        init(),
+        title("QRCODE Test"),
+        println("text: http://www.example.com"),
+        for l <- ["L", "M", "Q", "H"] do
+          [
+            align(:left),
+            println("level: #{l}, size: 3"),
+            align(:center),
+            qrcode("http://www.example.com", l, 3),
+            new_line()
+          ]
+        end,
+        for s <- 1..9 do
+          [
+            align(:left),
+            println("level: L, size: #{s}"),
+            align(:center),
+            qrcode("http://www.example.com", "L", s),
+            new_line()
+          ]
+        end,
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "barcode", %{client: c, width: width} do
+    data =
+      [
+        init(),
+        title("BARCODE Test"),
+        barcode_height(80),
+        barcode_weight(3),
+        barcode_position(),
+        align(:left),
+        println("CODE128 h: 80, w: 3"),
+        println("CODE128 by code - b"),
+        align(:center),
+        barcode("CODE128", "No.123456"),
+        align(:left),
+        println("CODE128 by code - b to c "),
+        align(:center),
+        barcode("CODE128", [?{, ?B, "No.", ?{, ?C, 12, 34, 56]),
+        draw_line(width),
+        for w <- 2..6 do
+          [
+            align(:left),
+            println("EAN13 h: 80, w: #{w}"),
+            barcode_weight(w),
+            align(:center),
+            barcode("EAN13", "1234567890123")
+          ]
+        end,
+        barcode_weight(3),
+        draw_line(width),
+        for h <- 50..200//30 do
+          [
+            align(:left),
+            println("EAN13 h: #{h}, w: 3"),
+            barcode_height(h),
+            align(:center),
+            barcode("EAN13", "1234567890123")
+          ]
+        end,
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
 
     assert :ok = Client.sync_write(c, data)
   end
