@@ -83,6 +83,39 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
+  test "align", %{client: c} do
+    data =
+      [
+        init(),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
+        new_line(),
+        align(:center),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
+        new_line(),
+        align(:right),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
+        feed_cut()
+      ]
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
   test "hans", %{client: c, width: width} do
     array =
       for double_height? <- [true, false], double_width? <- [true, false] do

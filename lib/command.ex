@@ -363,12 +363,12 @@ defmodule ExEscpos.Command do
         row =
           if is_list(row) do
             Stream.map(col_settings, fn col ->
-              text = Enum.at(row, col.index)
+              text = Enum.at(row, col.index, "")
               Map.put(col, :text, text)
             end)
           else
             Stream.map(col_settings, fn col ->
-              text = row[col.key]
+              text = row[col.key] || ""
               Map.put(col, :text, text)
             end)
           end
@@ -468,12 +468,12 @@ defmodule ExEscpos.Command do
         row =
           if is_list(row) do
             Stream.map(col_settings, fn col ->
-              text = Enum.at(row, col.index)
+              text = Enum.at(row, col.index, "")
               Map.put(col, :text, text)
             end)
           else
             Stream.map(col_settings, fn col ->
-              text = row[col.key]
+              text = row[col.key] || ""
               Map.put(col, :text, text)
             end)
           end
