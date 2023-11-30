@@ -65,6 +65,7 @@ defmodule ExEscposTest do
         table_row(["第一列", "第二列", "第三列", "第四列"], width),
         table_row(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
         table_row(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
+        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], width),
         new_line(),
         align(:left),
         println("align left"),
@@ -87,28 +88,7 @@ defmodule ExEscposTest do
     data =
       [
         init(),
-        mode(true, false, false, false, false),
-        text("zip"),
-        mode(false, true, false, false, false),
-        text(" bold"),
-        mode(false, false, true, true, false),
-        text(" x2"),
-        new_line(),
-        align(:center),
-        mode(true, false, false, false, false),
-        text("zip"),
-        mode(false, true, false, false, false),
-        text(" bold"),
-        mode(false, false, true, true, false),
-        text(" x2"),
-        new_line(),
-        align(:right),
-        mode(true, false, false, false, false),
-        text("zip"),
-        mode(false, true, false, false, false),
-        text(" bold"),
-        mode(false, false, true, true, false),
-        text(" x2"),
+        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], 48),
         feed_cut()
       ]
       |> IO.iodata_to_binary()

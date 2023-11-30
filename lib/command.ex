@@ -324,18 +324,19 @@ defmodule ExEscpos.Command do
     |> IO.iodata_to_binary()
   end
 
+  def ht_row(text_spaces_list, width, encoding \\ @encoding) do
+    {list, space_list} = Enum.unzip(text_spaces_list)
+    ht_points = calculate_ht_points(space_list, width)
+
+    IO.iodata_to_binary([
+      set_ht(ht_points),
+      ht_table_row(list, space_list, encoding),
+      new_line()
+    ])
+  end
+
   def ht_table(data, col_settings, width, encoding \\ @encoding) do
-    {ht_points, _} =
-      Enum.reduce(col_settings, {[], 0}, fn col, {acc, point} ->
-        point = point + col.spaces
-
-        if point >= width do
-          {acc, point}
-        else
-          {acc ++ [point], point}
-        end
-      end)
-
+    ht_points = col_settings |> Stream.map(& &1.spaces) |> calculate_ht_points(width)
     latest = length(col_settings) - 1
 
     col_settings =
@@ -610,5 +611,20 @@ defmodule ExEscpos.Command do
 
   def parse_page_status(<<page_not_enough::2, page::2, _::4>>) do
     %{page_not_enough: page_not_enough == 3, page: page == 0}
+  end
+
+  defp calculate_ht_points(space_list, width) do
+    {ht_points, _} =
+      Enum.reduce(space_list, {[], 0}, fn spaces, {acc, point} ->
+        point = point + spaces
+
+        if point >= width do
+          {acc, point}
+        else
+          {acc ++ [point], point}
+        end
+      end)
+
+    ht_points
   end
 end
