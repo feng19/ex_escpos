@@ -88,7 +88,28 @@ defmodule ExEscposTest do
     data =
       [
         init(),
-        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], 48),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
+        new_line(),
+        align(:center),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
+        new_line(),
+        align(:right),
+        mode(true, false, false, false, false),
+        text("zip"),
+        mode(false, true, false, false, false),
+        text(" bold"),
+        mode(false, false, true, true, false),
+        text(" x2"),
         feed_cut()
       ]
       |> IO.iodata_to_binary()
