@@ -385,6 +385,7 @@ defmodule ExEscpos.Command do
       set_ht(ht_points),
       bold(true),
       header,
+      new_line(),
       bold(false),
       draw_line(width),
       rows
