@@ -8,7 +8,9 @@ defmodule ExEscpos.Client do
     port: 9100,
     page_width: 80,
     encoding: "GB18030",
-    keep_alive: true
+    keep_alive: true,
+    keep_alive_heartbeat_timeout: 30_000,
+    disconnect_failed_max_times: 30
   }
   @connect_options [:binary, {:packet, 0}, {:send_timeout, 2500}]
 
@@ -46,7 +48,8 @@ defmodule ExEscpos.Client do
        width: 48,
        page_width: 80,
        encoding: "GB18030",
-       keep_alive_timer: nil
+       keep_alive_timer: nil,
+       reconnect_failed_times: 0
      }}
   end
 
@@ -75,7 +78,7 @@ defmodule ExEscpos.Client do
         state =
           state
           |> Map.merge(options)
-          |> Map.merge(%{ip: ip, socket: socket, width: width})
+          |> Map.merge(%{ip: ip, socket: socket, width: width, reconnect_failed_times: 0})
           |> start_keep_alive_heartbeat()
 
         {:reply, :ok, state}
@@ -96,7 +99,7 @@ defmodule ExEscpos.Client do
     case :gen_tcp.connect(state.ip, state.port, @connect_options, 4500) do
       {:ok, socket} ->
         state = start_keep_alive_heartbeat(state)
-        {:reply, :ok, %{state | socket: socket}}
+        {:reply, :ok, %{state | socket: socket, reconnect_failed_times: 0}}
 
       error ->
         {:reply, error, %{state | socket: nil}}
@@ -142,7 +145,7 @@ defmodule ExEscpos.Client do
   end
 
   def handle_info(:continue_reconnect, state) do
-    {:noreply, state, {:continue, :reconnect}}
+    continue_reconnect(state)
   end
 
   def handle_info({:tcp_closed, _socket}, state) do
@@ -179,15 +182,18 @@ defmodule ExEscpos.Client do
     Logger.info("reconnecting...")
 
     state =
-      case :gen_tcp.connect(state.ip, state.port, @connect_options) do
+      case :gen_tcp.connect(state.ip, state.port, @connect_options, 1000) do
         {:ok, socket} ->
           Logger.info("printer connected")
-          %{state | socket: socket} |> cancel_timer() |> start_keep_alive_heartbeat()
+
+          %{state | socket: socket, reconnect_failed_times: 0}
+          |> cancel_timer()
+          |> start_keep_alive_heartbeat()
 
         error ->
           Logger.info("reconnect error: #{inspect(error)}")
           Process.send_after(self(), :continue_reconnect, 1000)
-          state
+          %{state | reconnect_failed_times: state.reconnect_failed_times + 1}
       end
 
     {:noreply, state}
@@ -208,7 +214,9 @@ defmodule ExEscpos.Client do
 
   defp start_keep_alive_heartbeat(state) do
     if state.keep_alive do
-      {:ok, tref} = :timer.send_interval(30_000, self(), :keep_alive_heartbeat)
+      {:ok, tref} =
+        :timer.send_interval(state.keep_alive_heartbeat_timeout, self(), :keep_alive_heartbeat)
+
       %{state | keep_alive_timer: tref}
     else
       %{state | keep_alive_timer: nil}
@@ -224,7 +232,11 @@ defmodule ExEscpos.Client do
 
   defp continue_reconnect(state) do
     if state.keep_alive do
-      {:noreply, state, {:continue, :reconnect}}
+      if state.reconnect_failed_times < state.disconnect_failed_max_times do
+        {:noreply, state, {:continue, :reconnect}}
+      else
+        {:noreply, %{state | keep_alive: false}}
+      end
     else
       {:noreply, state}
     end
