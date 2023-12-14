@@ -325,13 +325,12 @@ defmodule ExEscpos.Command do
   end
 
   def ht_row(text_spaces_list, width, encoding \\ @encoding) do
-    {list, space_list} = Enum.unzip(text_spaces_list)
+    {_list, space_list} = Enum.unzip(text_spaces_list)
     ht_points = calculate_ht_points(space_list, width)
 
     IO.iodata_to_binary([
       set_ht(ht_points),
-      ht_table_row(list, space_list, encoding),
-      new_line()
+      ht_table_row_do(text_spaces_list, encoding)
     ])
   end
 
@@ -409,23 +408,26 @@ defmodule ExEscpos.Command do
   end
 
   def ht_table_row(list, space_list, encoding \\ @encoding) do
-    latest = length(list) - 1
+    Enum.zip(list, space_list) |> ht_table_row_do(encoding)
+  end
 
-    space_list
-    |> Enum.with_index()
-    |> Enum.zip_with(list, fn
-      {_space, 0}, text ->
+  defp ht_table_row_do(text_spaces_list, encoding) do
+    latest = length(text_spaces_list) - 1
+
+    text_spaces_list
+    |> Enum.zip_with(0..latest, fn
+      {text, _space}, 0 ->
         text
 
-      {space, ^latest}, text ->
+      {text, space}, ^latest ->
         text = text(text, encoding)
         padding = max(space - byte_size(text), 0)
-        [List.duplicate(" ", padding), {:safe, text}]
+        {:safe, space(padding) <> text}
 
-      {space, _i}, text ->
+      {text, space}, _i ->
         text = text(text, encoding)
         padding = max(space - byte_size(text), 0) |> div(2)
-        [List.duplicate(" ", padding), {:safe, text}]
+        {:safe, space(padding) <> text}
     end)
     |> ht_list(encoding)
   end
@@ -543,15 +545,14 @@ defmodule ExEscpos.Command do
         :both ->
           left_s = div(spaces, 2)
           right_s = spaces - left_s
-          [List.duplicate(" ", left_s), text | List.duplicate(" ", right_s)]
+          space(left_s) <> text <> space(right_s)
 
         :left ->
-          [List.duplicate(" ", spaces), text]
+          space(spaces) <> text
 
         :right ->
-          [text | List.duplicate(" ", spaces)]
+          text <> space(spaces)
       end
-      |> IO.iodata_to_binary()
     else
       text
     end
@@ -567,10 +568,10 @@ defmodule ExEscpos.Command do
       case type do
         :both ->
           left_s = div(spaces, 2)
-          IO.iodata_to_binary([List.duplicate(" ", left_s), text])
+          space(left_s) <> text
 
         :left ->
-          IO.iodata_to_binary([List.duplicate(" ", spaces), text])
+          space(spaces) <> text
 
         :right ->
           text
@@ -627,5 +628,9 @@ defmodule ExEscpos.Command do
       end)
 
     ht_points
+  end
+
+  defp space(length) do
+    List.duplicate(" ", length) |> IO.iodata_to_binary()
   end
 end

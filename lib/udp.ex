@@ -28,7 +28,7 @@ defmodule ExEscpos.UDP do
 
       {:udp, socket, ip, port, data} ->
         info =
-          :binary.split(data, <<?;>>, [:global])
+          :binary.split(data, ";", [:global])
           |> Enum.reduce(%{}, fn line, info ->
             case :binary.split(line, ":") do
               [k, v] -> Map.put(info, k, v)
@@ -39,33 +39,34 @@ defmodule ExEscpos.UDP do
         loop_receive(socket, [%{from: %{ip: ip, port: port}, info: info} | acc])
     after
       1500 ->
-        IO.puts("receive timeout")
         :gen_udp.close(socket)
         acc
     end
   end
 
-  def reboot(ip, mac) do
+  def reboot(target_ip \\ @broadcast_ip, mac) do
     mac = trans_mac(mac)
 
-    ip
+    target_ip
     |> trans_ip()
     |> send_to_printer(<<"B[", mac::binary, "]EJKE02">>)
   end
 
-  def reset(ip, mac) do
+  def reset(target_ip \\ @broadcast_ip, mac) do
     mac = trans_mac(mac)
 
-    ip
+    target_ip
     |> trans_ip()
     |> send_to_printer(<<"B[", mac::binary, "]YJKE02GPRINTERGPR">>)
   end
 
-  def set_ip(mac, ip, subnet_mask, gateway)
+  def set_ip(target_ip \\ @broadcast_ip, mac, ip, subnet_mask, gateway)
       when is_binary(mac) and is_binary(ip) do
     mac = trans_mac(mac)
 
-    send_to_printer(@broadcast_ip, [
+    target_ip
+    |> trans_ip()
+    |> send_to_printer([
       <<"B[", mac::binary, "]YJKE02GPRINTERGPI#{ip}">>,
       <<"B[", mac::binary, "]YJKE02GPRINTERGPS#{subnet_mask}">>,
       <<"B[", mac::binary, "]YJKE02GPRINTERGPW#{gateway}">>,
@@ -73,18 +74,20 @@ defmodule ExEscpos.UDP do
     ])
   end
 
-  def set_dhcp(mac, bool, timeout) do
+  def set_dhcp(target_ip \\ @broadcast_ip, mac, bool, timeout) do
     mac = trans_mac(mac)
     enable = if bool, do: 1, else: 0
 
-    send_to_printer(@broadcast_ip, [
+    target_ip
+    |> trans_ip()
+    |> send_to_printer([
       <<"B[", mac::binary, "]YJKE02GPRINTERGPD#{enable}">>,
       <<"B[", mac::binary, "]YJKE02GPRINTERGPt", timeout>>,
       <<"B[", mac::binary, "]EJKE02">>
     ])
   end
 
-  def send_to_printer(ip, iodata) do
+  def send_to_printer(target_ip, iodata) do
     {:ok, socket} =
       :gen_udp.open(3000, [
         :binary,
@@ -96,10 +99,10 @@ defmodule ExEscpos.UDP do
 
     if is_list(iodata) do
       for data <- iodata do
-        :gen_udp.send(socket, ip, 3000, data)
+        :gen_udp.send(socket, target_ip, 3000, data)
       end
     else
-      :gen_udp.send(socket, ip, 3000, iodata)
+      :gen_udp.send(socket, target_ip, 3000, iodata)
     end
 
     :gen_udp.close(socket)
