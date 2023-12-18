@@ -59,14 +59,6 @@ defmodule ExEscposTest do
         println("double underline |!@#$%^&*()-+= abc 中文"),
         underline(false),
         new_line(),
-        println("one line"),
-        align(:left),
-        table_row(["第一列", "中间", "最后一列"], width),
-        table_row(["第一列", "第二列", "第三列", "第四列"], width),
-        table_row(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
-        table_row(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
-        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], width),
-        new_line(),
         align(:left),
         println("align left"),
         align(:center),
@@ -76,6 +68,46 @@ defmodule ExEscposTest do
         draw_line(width, "="),
         align(:center),
         println("test end"),
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "table_row", %{client: c, width: width} do
+    data =
+      [
+        init(),
+        title("Table Row Test"),
+        table_row(["第一列", "中间", "最后一列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列", "第五列"], width),
+        table_row(["第一列", "第二列", "第三列", "第四列", "第五列", "第六列"], width),
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
+  test "ht_row", %{client: c, width: width} do
+    data =
+      [
+        init(),
+        title("HT Row Test"),
+        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], width),
+        ht_row([{"第一列", 12}, {"第二列", 12}, {"第三列", 12}, {"最后一列", 12}], width),
+        println("第一列第一列第二列第二列第三列第三列最后一列最后"),
+        ht_row([{"第一列第一列", 12}, {"第二列第二列", 12}, {"第三列第三列", 12}, {"最后一列最后", 12}], width),
+        println("auto line wrap"),
+        ht_row(
+          [{"第一列第一列第一列", 12}, {"第二列第二列第二列", 12}, {"第三列第三列第三列", 12}, {"最后一列最后一列", 12}],
+          width
+        ),
+        ht_row([{"第1列第1列1列", 12}, {"第2列第2列2列", 12}, {"第3列第3列3列", 12}, {"最后1列11尾列11", 12}], width),
         feed_cut()
       ]
       |> List.flatten()
@@ -186,6 +218,23 @@ defmodule ExEscposTest do
       %{label: "金额", key: :sum, spaces: 8}
     ]
 
+    data_3 = [
+      %{name: "素食套餐", price: "换行换行18", count: "1", sum: "18"},
+      %{name: " 藕片（4片）", price: "换行换行3.8", count: "2", sum: "7.6"},
+      %{name: " 腐竹（5块）", price: "换行换行3.8", count: "1", sum: "3.8"},
+      %{name: " 海带结（5个）", price: "换行换行3.8", count: "1", sum: "7.6"},
+      %{name: "鹌鹑蛋（4个）", price: "换行换行4.8", count: "1", sum: "4.8"},
+      %{name: "鸡爪（3个）", price: "换行换行7.8", count: "2", sum: "15.6"},
+      %{name: "牛肉丸（3个）", price: "换行换行6.8", count: "1", sum: "6.8"}
+    ]
+
+    col_settings_3 = [
+      %{label: "商品（换行换行换行换行换行换行）", key: :name, spaces: 26},
+      %{label: "单价换行换行", key: :price, spaces: 8},
+      %{label: "数量换行换行", key: :count, spaces: 6},
+      %{label: "金额换行换行", key: :sum, spaces: 8}
+    ]
+
     data =
       [
         init(),
@@ -197,6 +246,10 @@ defmodule ExEscposTest do
         println("table custom - 2"),
         draw_line(width),
         table_custom(data_2, col_settings_2, width),
+        draw_line(width, "="),
+        println("table custom - auto line wrap"),
+        draw_line(width),
+        table_custom(data_3, col_settings_3, width),
         draw_line(width, "="),
         println("ht table custom - 1"),
         draw_line(width),
