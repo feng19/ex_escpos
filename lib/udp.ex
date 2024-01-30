@@ -109,12 +109,7 @@ defmodule ExEscpos.UDP do
   end
 
   defp trans_mac(mac) when is_binary(mac) do
-    mac
-    |> :binary.replace(" ", "")
-    |> String.to_charlist()
-    |> Stream.chunk_every(2)
-    |> Enum.map(&List.to_integer(&1, 16))
-    |> :erlang.list_to_binary()
+    mac |> String.trim() |> :binary.replace(" ", "") |> Base.decode16()
   end
 
   defp trans_ip(ip) when is_binary(ip), do: String.to_charlist(ip)
