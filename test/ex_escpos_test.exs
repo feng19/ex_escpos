@@ -7,7 +7,7 @@ defmodule ExEscposTest do
     ip = System.fetch_env!("PRINTER_IP")
     {:ok, pid} = Client.start_link()
     :ok = Client.connect(pid, ip)
-    %{client: pid, ip: ip, width: 48}
+    %{client: pid, ip: ip, width: 48, encoding: "GB18030", enable_full_ht_bug?: true}
   end
 
   test "check status", %{ip: ip} do
@@ -93,21 +93,48 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
-  test "ht_row", %{client: c, width: width} do
+  test "ht_row", %{client: c, width: width, encoding: encoding, enable_full_ht_bug?: bug?} do
     data =
       [
         init(),
         title("HT Row Test"),
         ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], width),
+        ht_row([{"第一列", 16}, {"中间", 16}, {"最后一列", 16}], width, %{
+          bold?: true,
+          double_height?: true,
+          double_width?: true
+        }),
         ht_row([{"第一列", 12}, {"第二列", 12}, {"第三列", 12}, {"最后一列", 12}], width),
         println("第一列第一列第二列第二列第三列第三列最后一列最后"),
-        ht_row([{"第一列第一列", 12}, {"第二列第二列", 12}, {"第三列第三列", 12}, {"最后一列最后", 12}], width),
+        ht_row(
+          [{"第一列第一列", 12}, {"第二列第二列", 12}, {"第三列第三列", 12}, {"最后一列最后", 12}],
+          width,
+          %{},
+          encoding,
+          bug?
+        ),
         println("auto line wrap"),
         ht_row(
           [{"第一列第一列第一列", 12}, {"第二列第二列第二列", 12}, {"第三列第三列第三列", 12}, {"最后一列最后一列", 12}],
-          width
+          width,
+          %{},
+          encoding,
+          bug?
         ),
-        ht_row([{"第1列第1列1列", 12}, {"第2列第2列2列", 12}, {"第3列第3列3列", 12}, {"最后1列11尾列11", 12}], width),
+        ht_row(
+          [{"第1列第1列1列", 12}, {"第2列第2列2列", 12}, {"第3列第3列3列", 12}, {"最后1列11尾列11", 12}],
+          width,
+          %{},
+          encoding,
+          bug?
+        ),
+        ht_row(
+          [{"第1列第1列1列", 16}, {"第2列第2列2列", 16}, {"最后1列11尾列11", 16}],
+          width,
+          %{double_height?: true, double_width?: true},
+          encoding,
+          bug?
+        ),
         feed_cut()
       ]
       |> List.flatten()
@@ -183,7 +210,7 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
-  test "table", %{client: c, width: width} do
+  test "table", %{client: c, width: width, encoding: encoding, enable_full_ht_bug?: bug?} do
     data_1 = [
       ["素食套餐", "18", "1", "18"],
       [" 藕片（4片）", "3.8", "2", "7.6"],
@@ -235,6 +262,8 @@ defmodule ExEscposTest do
       %{label: "金额换行换行", key: :sum, spaces: 8}
     ]
 
+    x2_mode = %{double_height?: true, double_width?: true}
+
     data =
       [
         init(),
@@ -253,11 +282,21 @@ defmodule ExEscposTest do
         draw_line(width, "="),
         println("ht table custom - 1"),
         draw_line(width),
-        ht_table(data_1, col_settings_1, width),
+        ht_table(data_1, col_settings_1, width, %{}, encoding, bug?),
+        println("ht table custom - 1 x2"),
+        draw_line(width),
+        ht_table(
+          data_1,
+          col_settings_1,
+          width,
+          %{header: x2_mode, body: x2_mode},
+          encoding,
+          bug?
+        ),
         draw_line(width, "="),
         println("ht table custom - 2"),
         draw_line(width),
-        ht_table(data_2, col_settings_2, width),
+        ht_table(data_2, col_settings_2, width, %{}, encoding, bug?),
         feed_cut()
       ]
       |> IO.iodata_to_binary()
