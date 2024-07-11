@@ -262,7 +262,7 @@ defmodule ExEscpos.Command do
   def qrcode(data, qr_level \\ "L", size \\ 3, encoding \\ @encoding)
       when size >= 1 and size <= 9 do
     data = text(data, encoding)
-    pl = byte_size(data) + 3
+    len = byte_size(data) + 3
 
     qr_level =
       case qr_level do
@@ -278,7 +278,7 @@ defmodule ExEscpos.Command do
       # f 169
       <<@gs, ?(, ?k, 3, 0, ?1, 69, qr_level>>,
       # f 180
-      <<@gs, ?(, ?k, pl, 0, ?1, 80, 48, data::binary>>,
+      <<@gs, ?(, ?k, len::16-little, ?1, 80, 48, data::binary>>,
       # f 181
       <<@gs, ?(, ?k, 3, 0, ?1, 81, 48>>
     ])
