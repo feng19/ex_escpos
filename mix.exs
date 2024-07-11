@@ -20,6 +20,7 @@ defmodule ExEscpos.MixProject do
   defp deps do
     [
       {:iconv, "~> 1.0"},
+      {:eqrcode, "~> 0.1", optional: true},
       {:bmp, "~> 0.1", only: :test}
     ]
   end

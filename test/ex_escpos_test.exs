@@ -382,6 +382,38 @@ defmodule ExEscposTest do
     assert :ok = Client.sync_write(c, data)
   end
 
+  test "qr_image", %{client: c} do
+    data =
+      [
+        init(),
+        title("QRCODE image Test"),
+        println("text: http://www.example.com"),
+        for l <- ["L", "M", "Q", "H"] do
+          [
+            align(:left),
+            println("level: #{l}, size: 3"),
+            align(:center),
+            qr_image("http://www.example.com", l, 3),
+            new_line()
+          ]
+        end,
+        for s <- 1..9 do
+          [
+            align(:left),
+            println("level: L, size: #{s}"),
+            align(:center),
+            qr_image("http://www.example.com", "L", s),
+            new_line()
+          ]
+        end,
+        feed_cut()
+      ]
+      |> List.flatten()
+      |> IO.iodata_to_binary()
+
+    assert :ok = Client.sync_write(c, data)
+  end
+
   test "barcode", %{client: c, width: width} do
     data =
       [

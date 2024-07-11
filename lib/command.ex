@@ -284,6 +284,37 @@ defmodule ExEscpos.Command do
     ])
   end
 
+  if Code.ensure_loaded?(EQRCode) do
+    @spec qr_image(content :: binary, qr_level :: String.t(), size :: 1..9) :: binary
+    def qr_image(content, qr_level \\ "L", size \\ 3) do
+      level =
+        case qr_level do
+          "L" -> :l
+          "M" -> :m
+          "Q" -> :q
+          "H" -> :h
+        end
+
+      %{matrix: matrix} = EQRCode.encode(content, level)
+
+      pixels =
+        for e <- Tuple.to_list(matrix) do
+          Tuple.to_list(e)
+          |> Stream.flat_map(&List.duplicate(&1, size))
+          |> Stream.chunk_every(8, 8, Stream.cycle([0]))
+          |> Enum.map(fn [b1, b2, b3, b4, b5, b6, b7, b8] ->
+            <<b1::1, b2::1, b3::1, b4::1, b5::1, b6::1, b7::1, b8::1>>
+          end)
+          |> List.duplicate(size)
+        end
+        |> IO.iodata_to_binary()
+
+      height = tuple_size(matrix) * size
+      width = byte_size(pixels) |> div(height)
+      image(width, height, pixels, :double_both)
+    end
+  end
+
   def image(width, height, pixels, type \\ :normal) do
     m =
       case type do
