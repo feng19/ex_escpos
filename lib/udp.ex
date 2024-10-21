@@ -109,7 +109,7 @@ defmodule ExEscpos.UDP do
   end
 
   defp trans_mac(mac) when is_binary(mac) do
-    mac |> String.trim() |> :binary.replace(" ", "") |> Base.decode16()
+    mac |> String.trim() |> :binary.replace(" ", "") |> Base.decode16!()
   end
 
   defp trans_ip(ip) when is_binary(ip), do: String.to_charlist(ip)
