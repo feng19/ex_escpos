@@ -1,11 +1,10 @@
 %{
   "bmp": {:hex, :bmp, "0.1.1", "54ef05df432d1a6e89f06b0d7320f3f440a9741a971cc44a7d18742fb14c6921", [:mix], [], "hexpm", "f6a2ff424f8d837f43ca33372df3afab0bd061ede9f019fe3e932e35b5e6adc9"},
-  "eqrcode": {:hex, :eqrcode, "0.1.10", "6294fece9d68ad64eef1c3c92cf111cfd6469f4fbf230a2d4cc905a682178f3f", [:mix], [], "hexpm", "da30e373c36a0fd37ab6f58664b16029919896d6c45a68a95cc4d713e81076f1"},
   "ex_maybe": {:hex, :ex_maybe, "1.1.1", "95c0188191b43bd278e876ae4f0a688922e3ca016a9efd97ee7a0b741a61b899", [:mix], [], "hexpm", "1af8c78c915c7f119a513b300a1702fc5cc9fed42d54fd85995265e4c4b763d2"},
   "iconv": {:hex, :iconv, "1.0.13", "98e723a14a1942e94cb32837ee875d145a7f2266f2c79816a54f1aa77ebff495", [:rebar3], [], "hexpm", "bcb37d52da24161f2c2beeb9234b62e76562919149cc2fc0d3537ac0cef5b977"},
   "matrix_reloaded": {:hex, :matrix_reloaded, "2.3.0", "eea41bc6713021f8f51dde0c2d6b72e695a99098753baebf0760e10aed8fa777", [:mix], [{:ex_maybe, "~> 1.0", [hex: :ex_maybe, repo: "hexpm", optional: false]}, {:result, "~> 1.7", [hex: :result, repo: "hexpm", optional: false]}], "hexpm", "4013c0cebe5dfffc8f2316675b642fb2f5a1dfc4bdc40d2c0dfa0563358fa496"},
   "pngex": {:hex, :pngex, "0.1.2", "824c2da291fda236397729f236b29f87b98a434d58124ea9f7fa03d3b3cf8587", [:mix], [], "hexpm", "9f9f2d9aa286d03f6c317017a09e1b548fa0aa6b901291e24dbf65d8212b22b0"},
-  "qr_code": {:git, "https://github.com/feng19/qr_code.git", "d376884d16f222386a6a088dd5eeee32f3caddd3", []},
+  "qr_code": {:hex, :qr_code, "3.1.0", "102cd634c6ccb0b9b03f8e7866c43f4a839157e3a9a0cc2cfef9dbc81b187ee9", [:mix], [{:ex_maybe, "~> 1.1.1", [hex: :ex_maybe, repo: "hexpm", optional: false]}, {:matrix_reloaded, "~> 2.3", [hex: :matrix_reloaded, repo: "hexpm", optional: false]}, {:pngex, "~> 0.1.0", [hex: :pngex, repo: "hexpm", optional: false]}, {:result, "~> 1.7", [hex: :result, repo: "hexpm", optional: false]}, {:xml_builder, "~> 2.3", [hex: :xml_builder, repo: "hexpm", optional: false]}], "hexpm", "b8b187ae7ac35db52d8ccf6d847c62ce06713e631f051c4460ee387b38365500"},
   "result": {:hex, :result, "1.7.2", "a57c569f7cf5c158d2299d3b5624a48b69bd1520d0771dc711bcf9f3916e8ab6", [:mix], [], "hexpm", "89f98e98cfbf64237ecf4913aa36b76b80463e087775d19953dc4b435a35f087"},
   "xml_builder": {:hex, :xml_builder, "2.3.0", "69d214c6ad41ae1300b36acff4367551cdfd9dc1b860affc16e103c6b1589053", [:mix], [], "hexpm", "972ec33346a225cd5acd14ab23d4e79042bd37cb904e07e24cd06992dde1a0ed"},
 }
